@@ -40,6 +40,7 @@ export function useSidebarState() {
     deleteFolder,
     inspectFolder,
     flattenFiles,
+    refreshFiles,
   } = useFileSystem();
 
   const [filter, setFilter] = useState("");
@@ -414,6 +415,7 @@ export function useSidebarState() {
     selectWorkspace,
     workspacePath,
     flattenFiles,
+    refreshFiles,
 
     allFolders,
     filteredItems,

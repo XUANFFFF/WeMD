@@ -19,6 +19,7 @@ import {
   getElectron,
   joinPath,
   LAST_FILE_KEY,
+  splitPath,
   WORKSPACE_KEY,
 } from "./useFileSystemHelpers";
 import { useFileSystemFolderActions } from "./useFileSystemFolderActions";
@@ -418,19 +419,46 @@ export function useFileSystem(options: UseFileSystemOptions = {}) {
         themeName: parsed.themeName,
         title: nextTitle,
       });
+      const targetFileName = normalizeMarkdownFileName(nextTitle);
+      const { dir } = splitPath(file.path);
+      const targetPath = joinPath(dir, targetFileName);
 
       let success = false;
       let errorMsg = "";
+      let nextPath = file.path;
+      let nextName = file.name;
       if (electron) {
-        const saveRes = await electron.fs.saveFile({
-          filePath: file.path,
-          content: fullContent,
-        });
-        success = saveRes.success;
-        errorMsg = saveRes.error || "";
+        if (targetPath !== file.path) {
+          const renameRes = await electron.fs.renameFile({
+            oldPath: file.path,
+            newName: targetFileName,
+          });
+          success = renameRes.success;
+          errorMsg = renameRes.error || "";
+          if (renameRes.success) {
+            nextPath = renameRes.filePath || targetPath;
+            nextName = targetFileName;
+          }
+        }
+        if (success || targetPath === file.path) {
+          const saveRes = await electron.fs.saveFile({
+            filePath: nextPath,
+            content: fullContent,
+          });
+          success = saveRes.success;
+          errorMsg = saveRes.error || "";
+        }
       } else if (adapter && storageReady) {
         try {
-          await adapter.writeFile(file.path, fullContent);
+          if (targetPath !== file.path) {
+            if (await adapter.exists(targetPath)) {
+              throw new Error("文件名已存在");
+            }
+            await adapter.renameFile(file.path, targetPath);
+            nextPath = targetPath;
+            nextName = targetFileName;
+          }
+          await adapter.writeFile(nextPath, fullContent);
           success = true;
         } catch (error: unknown) {
           errorMsg = error instanceof Error ? error.message : String(error);
@@ -438,19 +466,25 @@ export function useFileSystem(options: UseFileSystemOptions = {}) {
       }
 
       if (!success) {
-        toast.error(errorMsg || "更新标题失败");
+        toast.error(errorMsg || "重命名失败");
         return;
       }
 
       if (currentFile && currentFile.path === file.path) {
-        setCurrentFile({ ...currentFile, title: nextTitle });
+        setCurrentFile({
+          ...currentFile,
+          name: nextName,
+          path: nextPath,
+          title: nextTitle,
+        });
+        localStorage.setItem(LAST_FILE_KEY, nextPath);
         const currentState = useFileStore.getState();
         if (!currentState.isDirty) {
           setLastSavedContent(fullContent);
         }
       }
 
-      toast.success("标题已更新");
+      toast.success("已重命名");
       await refreshFiles();
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -535,6 +569,7 @@ export function useFileSystem(options: UseFileSystemOptions = {}) {
     isLoading,
     isSaving,
     selectWorkspace,
+    refreshFiles,
     openFile,
     createFile,
     saveFile,
