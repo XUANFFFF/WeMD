@@ -3,22 +3,25 @@ import { writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
+function byteLen(s: string): number {
+  return new TextEncoder().encode(s).length;
+}
+
 function toCFHtml(html: string): string {
   const EOL = "\r\n";
-  const fragment = `<section id="wemd">${html}</section>`;
   const headerZero = `Version:0.9${EOL}StartHTML:0000000000${EOL}EndHTML:0000000000${EOL}StartFragment:0000000000${EOL}EndFragment:0000000000${EOL}`;
   const bodyPrefix = `<html>${EOL}<body>${EOL}<!--StartFragment-->`;
   const bodySuffix = `<!--EndFragment-->${EOL}</body>${EOL}</html>`;
 
-  const startHtml = headerZero.length;
-  const startFragment = startHtml + bodyPrefix.length;
-  const endFragment = startFragment + fragment.length;
-  const endHtml = endFragment + bodySuffix.length;
+  const startHtml = byteLen(headerZero);
+  const startFragment = startHtml + byteLen(bodyPrefix);
+  const endFragment = startFragment + byteLen(html);
+  const endHtml = endFragment + byteLen(bodySuffix);
 
   const pad = (n: number) => String(n).padStart(10, "0");
   const header = `Version:0.9${EOL}StartHTML:${pad(startHtml)}${EOL}EndHTML:${pad(endHtml)}${EOL}StartFragment:${pad(startFragment)}${EOL}EndFragment:${pad(endFragment)}${EOL}`;
 
-  return header + bodyPrefix + fragment + bodySuffix;
+  return header + bodyPrefix + html + bodySuffix;
 }
 
 function copyWin32(html: string): boolean {

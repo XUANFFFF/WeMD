@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "vitest"
+    "test": "tsc && vitest run"
   },
   "dependencies": {
     "@wemd/core": "workspace:*"
