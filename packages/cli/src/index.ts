@@ -94,13 +94,17 @@ async function main(): Promise<void> {
 
   if (imageProvider === "r2") {
     const config = readR2Config();
-    if (config) {
-      try {
-        html = await processHtmlImages(html, dirname(resolvedPath), config);
-      } catch (err) {
-        console.error("Image upload failed:", err instanceof Error ? err.message : String(err));
-        process.exit(1);
-      }
+    if (!config) {
+      console.error("R2 image upload is enabled but required environment variables are missing.\n" +
+        "Set CLOUDFLARE_R2_ACCOUNT_ID, CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY,\n" +
+        "CLOUDFLARE_R2_BUCKET, and CLOUDFLARE_R2_PUBLIC_BASE_URL. See .env.example.");
+      process.exit(1);
+    }
+    try {
+      html = await processHtmlImages(html, dirname(resolvedPath), config);
+    } catch (err) {
+      console.error("Image upload failed:", err instanceof Error ? err.message : String(err));
+      process.exit(1);
     }
   }
 

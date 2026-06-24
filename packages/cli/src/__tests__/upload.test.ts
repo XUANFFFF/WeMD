@@ -1,6 +1,6 @@
 import { vi, describe, expect, it, beforeEach, afterAll } from "vitest";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 // ponytail: mock S3Client with mutable send ref (vi.mock is hoisted, so use vi.hoisted)
@@ -20,7 +20,6 @@ describe("readR2Config", () => {
 
   beforeEach(() => {
     process.env = { ...OLD_ENV };
-    delete process.env.WEMD_IMAGE_PROVIDER;
     delete process.env.CLOUDFLARE_R2_ACCOUNT_ID;
     delete process.env.CLOUDFLARE_R2_ACCESS_KEY_ID;
     delete process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY;
@@ -33,17 +32,11 @@ describe("readR2Config", () => {
     process.env = OLD_ENV;
   });
 
-  it("returns null when WEMD_IMAGE_PROVIDER is not r2", () => {
-    expect(readR2Config()).toBeNull();
-  });
-
   it("returns null when required env vars are missing", () => {
-    process.env.WEMD_IMAGE_PROVIDER = "r2";
     expect(readR2Config()).toBeNull();
   });
 
   it("returns config when all required vars are set", () => {
-    process.env.WEMD_IMAGE_PROVIDER = "r2";
     process.env.CLOUDFLARE_R2_ACCOUNT_ID = "abc123";
     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID = "key";
     process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY = "secret";
@@ -56,8 +49,7 @@ describe("readR2Config", () => {
     expect(cfg!.prefix).toBeUndefined();
   });
 
-  it("includes optional prefix and strips trailing slash from base URL", () => {
-    process.env.WEMD_IMAGE_PROVIDER = "r2";
+  it("returns config with prefix and strips trailing slash", () => {
     process.env.CLOUDFLARE_R2_ACCOUNT_ID = "a";
     process.env.CLOUDFLARE_R2_ACCESS_KEY_ID = "k";
     process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY = "s";
@@ -169,5 +161,16 @@ describe("processHtmlImages", () => {
     const html = "<p>Hello</p>";
     const result = await processHtmlImages(html, tmpDir, config);
     expect(result).toBe(html);
+  });
+
+  it("rejects path traversal with ../", async () => {
+    const html = '<p><img src="../outside.png" /></p>';
+    await expect(processHtmlImages(html, tmpDir, config)).rejects.toThrow("outside the input directory");
+  });
+
+  it("rejects absolute path outside input directory", async () => {
+    const outsidePath = resolve(tmpDir, "..", "outside.png");
+    const html = `<p><img src="${outsidePath}" /></p>`;
+    await expect(processHtmlImages(html, tmpDir, config)).rejects.toThrow("outside the input directory");
   });
 });

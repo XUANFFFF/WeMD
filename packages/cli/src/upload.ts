@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { extname, basename, resolve, dirname } from "node:path";
+import { extname, basename, resolve, relative, isAbsolute } from "node:path";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE = 20 * 1024 * 1024;
@@ -16,7 +16,6 @@ export interface R2Config {
 }
 
 export function readR2Config(): R2Config | null {
-  if (process.env.WEMD_IMAGE_PROVIDER !== "r2") return null;
   const required = [
     "CLOUDFLARE_R2_ACCOUNT_ID",
     "CLOUDFLARE_R2_ACCESS_KEY_ID",
@@ -98,11 +97,16 @@ export async function uploadToR2(imagePath: string, config: R2Config): Promise<{
 export async function processHtmlImages(html: string, inputDir: string, config: R2Config): Promise<string> {
   const imgRegex = /(<img[^>]*\ssrc\s*=\s*["'])([^"']+)(["'][^>]*>)/gi;
   const matches: Array<{ prefix: string; src: string; suffix: string; absPath: string }> = [];
+  const normalizedDir = resolve(inputDir);
   let m: RegExpExecArray | null;
   while ((m = imgRegex.exec(html)) !== null) {
     const src = m[2];
     if (/^(https?:\/\/|data:)/i.test(src)) continue;
     const absPath = resolve(inputDir, src);
+    const rel = relative(normalizedDir, absPath);
+    if (rel.startsWith("..") || isAbsolute(rel)) {
+      throw new Error(`Image path "${src}" is outside the input directory`);
+    }
     if (!existsSync(absPath)) {
       console.warn(`Image not found, skipping: ${absPath}`);
       continue;
