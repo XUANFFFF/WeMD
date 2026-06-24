@@ -149,10 +149,59 @@ WeMD/
 │   ├── electron/   # Electron 桌面端
 │   └── server/     # NestJS 图片上传服务
 ├── packages/
-│   └── core/       # Markdown 解析 / 主题 / 工具
+│   ├── core/       # Markdown 解析 / 主题 / 工具
+│   └── cli/        # CLI 命令行工具 (agent 可调用)
 ├── templates/      # 主题 CSS 模板
 └── turbo.json      # Turborepo 配置
 ```
+
+---
+
+## 🤖 Agent / CLI 自动化
+
+WeMD 提供了命令行接口，可供 agent 或自动化流程调用，将 Markdown 转换为微信公众号兼容的 HTML。
+
+### 用法
+
+```bash
+# 基本转换
+pnpm wemd convert article.md --out article.wechat.html
+
+# 指定主题
+pnpm wemd convert article.md --theme bauhaus --out output.html
+
+# 转换后写入系统剪贴板
+pnpm wemd convert article.md --theme cyberpunk-neon --copy
+
+# 查看可用主题
+pnpm wemd convert --list-themes
+```
+
+### 参数
+
+| 参数             | 说明                                    |
+| ---------------- | --------------------------------------- |
+| `<input.md>`     | 输入 Markdown 文件路径                  |
+| `--out <file>`   | 输出 HTML 文件路径（缺省输出到 stdout） |
+| `--theme <id>`   | 主题 ID，缺省为 `default`               |
+| `--copy`         | 将 HTML 写入系统剪贴板                  |
+| `--show-mac-bar` | 在代码块顶部显示 macOS 风格窗口控制点   |
+| `--list-themes`  | 列出所有可用主题 ID                     |
+| `-h, --help`     | 显示帮助信息                            |
+
+### 在 agent 中调用
+
+```bash
+# agent 生成 markdown 后，一行命令完成公众号排版
+pnpm wemd convert /tmp/draft.md --theme academic-paper --out ./dist/article.html
+```
+
+> 第一阶段仅完成 Markdown → HTML 转换，不支持自动上传本地图片。
+> 如有图片上传需求，可配合 `@wemd/server` 或自行处理图床。
+>
+> **clipboard 说明**：`--copy` 在 Windows 下使用 CF_HTML 格式写入剪贴板，
+> 粘贴到公众号可保留排版样式。macOS/Linux 在桌面环境下通常可用，
+> 部分无头服务器环境可能不支持剪贴板。
 
 ---
 
