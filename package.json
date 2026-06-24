@@ -7,7 +7,7 @@
     "dev": "turbo run dev",
     "dev:web": "pnpm --filter @wemd/web run dev",
     "dev:electron": "ELECTRON_START_URL=http://localhost:5173 NODE_ENV=development pnpm --filter wemd-electron run dev -- --dev",
-    "wemd": "pnpm --filter @wemd/cli start",
+    "wemd": "pnpm --filter @wemd/core build && pnpm --filter @wemd/cli build && node packages/cli/dist/index.js",
     "dev:desktop": "node scripts/run-desktop-dev.mjs",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",

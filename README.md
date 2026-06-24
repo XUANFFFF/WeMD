@@ -179,15 +179,15 @@ pnpm wemd convert --list-themes
 
 ### 参数
 
-| 参数 | 说明 |
-|------|------|
-| `<input.md>` | 输入 Markdown 文件路径 |
-| `--out <file>` | 输出 HTML 文件路径（缺省输出到 stdout） |
-| `--theme <id>` | 主题 ID，缺省为 `default` |
-| `--copy` | 将 HTML 写入系统剪贴板 |
-| `--show-mac-bar` | 在代码块顶部显示 macOS 风格窗口控制点 |
-| `--list-themes` | 列出所有可用主题 ID |
-| `-h, --help` | 显示帮助信息 |
+| 参数             | 说明                                    |
+| ---------------- | --------------------------------------- |
+| `<input.md>`     | 输入 Markdown 文件路径                  |
+| `--out <file>`   | 输出 HTML 文件路径（缺省输出到 stdout） |
+| `--theme <id>`   | 主题 ID，缺省为 `default`               |
+| `--copy`         | 将 HTML 写入系统剪贴板                  |
+| `--show-mac-bar` | 在代码块顶部显示 macOS 风格窗口控制点   |
+| `--list-themes`  | 列出所有可用主题 ID                     |
+| `-h, --help`     | 显示帮助信息                            |
 
 ### 在 agent 中调用
 
@@ -197,7 +197,11 @@ pnpm wemd convert /tmp/draft.md --theme academic-paper --out ./dist/article.html
 ```
 
 > 第一阶段仅完成 Markdown → HTML 转换，不支持自动上传本地图片。
-> 如有图片上传需求，可配合 `@wemd/server` 或自行处理图床。`
+> 如有图片上传需求，可配合 `@wemd/server` 或自行处理图床。
+>
+> **clipboard 说明**：`--copy` 在 Windows 下使用 CF_HTML 格式写入剪贴板，
+> 粘贴到公众号可保留排版样式。macOS/Linux 在桌面环境下通常可用，
+> 部分无头服务器环境可能不支持剪贴板。
 
 ---
 
