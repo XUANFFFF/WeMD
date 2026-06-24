@@ -173,32 +173,78 @@ pnpm wemd convert article.md --theme bauhaus --out output.html
 # 转换后写入系统剪贴板
 pnpm wemd convert article.md --theme cyberpunk-neon --copy
 
+# 使用自有 Cloudflare R2 存储桶自动上传本地图片
+pnpm wemd convert article.md --image-provider r2 --out article.wechat.html
+
 # 查看可用主题
 pnpm wemd convert --list-themes
 ```
 
 ### 参数
 
-| 参数             | 说明                                    |
-| ---------------- | --------------------------------------- |
-| `<input.md>`     | 输入 Markdown 文件路径                  |
-| `--out <file>`   | 输出 HTML 文件路径（缺省输出到 stdout） |
-| `--theme <id>`   | 主题 ID，缺省为 `default`               |
-| `--copy`         | 将 HTML 写入系统剪贴板                  |
-| `--show-mac-bar` | 在代码块顶部显示 macOS 风格窗口控制点   |
-| `--list-themes`  | 列出所有可用主题 ID                     |
-| `-h, --help`     | 显示帮助信息                            |
+| 参数                    | 说明                                     |
+| ----------------------- | ---------------------------------------- |
+| `<input.md>`            | 输入 Markdown 文件路径                   |
+| `--out <file>`          | 输出 HTML 文件路径（缺省输出到 stdout）  |
+| `--theme <id>`          | 主题 ID，缺省为 `default`                |
+| `--copy`                | 将 HTML 写入系统剪贴板                   |
+| `--show-mac-bar`        | 在代码块顶部显示 macOS 风格窗口控制点    |
+| `--image-provider <id>` | 图片上传 provider："noop"（默认）或 "r2" |
+| `--list-themes`         | 列出所有可用主题 ID                      |
+| `-h, --help`            | 显示帮助信息                             |
+
+### 使用自有 Cloudflare R2 存储桶
+
+CLI 支持将 Markdown 中的本地图片自动上传到 Cloudflare R2，并在输出 HTML 中替换为公网 URL。
+
+#### 配置
+
+通过环境变量配置（推荐，避免密钥写入仓库）：
+
+```bash
+# 启用 R2 图片上传
+export WEMD_IMAGE_PROVIDER=r2
+export CLOUDFLARE_R2_ACCOUNT_ID=<你的 Account ID>
+export CLOUDFLARE_R2_ACCESS_KEY_ID=<R2 API Token Access Key ID>
+export CLOUDFLARE_R2_SECRET_ACCESS_KEY=<R2 API Token Secret Access Key>
+export CLOUDFLARE_R2_BUCKET=<Bucket 名称>
+export CLOUDFLARE_R2_PUBLIC_BASE_URL=<公网访问域名，如 https://img.example.com>
+# 可选：上传路径前缀
+export CLOUDFLARE_R2_PREFIX=wemd
+```
+
+也可参考 `.env.example` 文件。
+
+#### 快速开始
+
+1. 在 [Cloudflare Dashboard](https://dash.cloudflare.com/) → R2 → 创建 Bucket。
+2. 在 R2 → 管理 API 令牌 → 创建 API 令牌（权限：`Admin Read & Write`）。
+3. 在 Bucket 设置中绑定自定义域名（或使用 Cloudflare 提供的 `r2.dev` 子域名）。
+4. 配置上述环境变量后运行：
+
+```bash
+pnpm wemd convert article.md --image-provider r2 --out article.wechat.html
+```
+
+CLI 会自动识别 Markdown 中的本地图片（`![](./images/a.png)` 或 `<img src="./images/a.png">`），上传到 R2，并将输出中的图片地址替换为公网 URL。已经是 `http://` / `https://` / `data:` 的图片不会重复上传。
+
+#### 文件命名规则
+
+上传的文件存储在 `{prefix}/{年份}/{月份}/{hash}-{安全文件名}.{ext}` 路径下，避免重名覆盖。
+
+#### 安全说明
+
+- 密钥仅通过环境变量读取，不会出现在日志、错误堆栈或输出文件中。
+- 仅允许上传 `image/jpeg`、`image/png`、`image/webp`、`image/gif` 格式。
+- 单文件大小上限为 20MB。
 
 ### 在 agent 中调用
 
 ```bash
 # agent 生成 markdown 后，一行命令完成公众号排版
-pnpm wemd convert /tmp/draft.md --theme academic-paper --out ./dist/article.html
+pnpm wemd convert /tmp/draft.md --theme academic-paper --image-provider r2 --out ./dist/article.html
 ```
 
-> 第一阶段仅完成 Markdown → HTML 转换，不支持自动上传本地图片。
-> 如有图片上传需求，可配合 `@wemd/server` 或自行处理图床。
->
 > **clipboard 说明**：`--copy` 在 Windows 下使用 CF_HTML 格式写入剪贴板，
 > 粘贴到公众号可保留排版样式。macOS/Linux 在桌面环境下通常可用，
 > 部分无头服务器环境可能不支持剪贴板。

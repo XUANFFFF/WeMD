@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { convertMarkdown } from "./convert";
 import { copyToClipboard } from "./clipboard";
 import { listThemes } from "./theme";
+import { readR2Config, processHtmlImages } from "./upload";
 
 function printHelp(): void {
   console.log(`
@@ -13,22 +14,23 @@ Usage:
   pnpm wemd convert <input.md> [options]
 
 Options:
-  --out <file>       Output HTML file path (default: stdout)
-  --theme <id>       Theme ID (default: "default")
-  --copy             Copy result to system clipboard
-  --show-mac-bar     Show macOS-style window controls on code blocks
-  --list-themes      List available theme IDs
-  -h, --help         Show this help message
+  --out <file>          Output HTML file path (default: stdout)
+  --theme <id>          Theme ID (default: "default")
+  --copy                Copy result to system clipboard
+  --show-mac-bar        Show macOS-style window controls on code blocks
+  --image-provider <id> Image upload provider: "noop" (default) or "r2"
+  --list-themes         List available theme IDs
+  -h, --help            Show this help message
 
 Examples:
   pnpm wemd convert article.md --out article.wechat.html
   pnpm wemd convert article.md --theme bauhaus --copy
-  pnpm wemd convert article.md --theme cyberpunk-neon --out dist/output.html --copy
+  pnpm wemd convert article.md --image-provider r2 --out article.wechat.html
   pnpm wemd convert --list-themes
 `);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   if (args.length === 0 || args.includes("-h") || args.includes("--help")) {
@@ -67,6 +69,8 @@ function main(): void {
 
   const copy = args.includes("--copy");
   const showMacBar = args.includes("--show-mac-bar");
+  const imageProviderArg = args.indexOf("--image-provider");
+  const imageProvider = imageProviderArg >= 0 && imageProviderArg + 1 < args.length ? args[imageProviderArg + 1] : process.env.WEMD_IMAGE_PROVIDER || "noop";
 
   let markdown: string;
   try {
@@ -86,6 +90,18 @@ function main(): void {
   } catch (err) {
     console.error("Conversion failed:", err instanceof Error ? err.message : String(err));
     process.exit(1);
+  }
+
+  if (imageProvider === "r2") {
+    const config = readR2Config();
+    if (config) {
+      try {
+        html = await processHtmlImages(html, dirname(resolvedPath), config);
+      } catch (err) {
+        console.error("Image upload failed:", err instanceof Error ? err.message : String(err));
+        process.exit(1);
+      }
+    }
   }
 
   if (outFile) {
@@ -111,4 +127,7 @@ function main(): void {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+});
