@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ArrowUpDown,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { SidebarFooter } from "./SidebarFooter";
 import {
@@ -219,6 +220,18 @@ export function FileSidebar() {
           </span>
         </div>
         <div className="fs-actions">
+          <button
+            className="fs-btn-secondary fs-btn-icon-only"
+            onClick={() => state.refreshFiles()}
+            aria-label="刷新文件列表"
+            data-tooltip="刷新文件列表"
+            onMouseEnter={(e) => state.showTooltip(e, "刷新文件列表")}
+            onMouseLeave={state.hideTooltip}
+            onFocus={(e) => state.showTooltip(e, "刷新文件列表")}
+            onBlur={state.hideTooltip}
+          >
+            <RefreshCw size={16} />
+          </button>
           <button
             className="fs-btn-secondary fs-btn-icon-only"
             onClick={() => state.setShowNewFolderModal(true)}

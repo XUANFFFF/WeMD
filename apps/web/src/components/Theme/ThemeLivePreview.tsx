@@ -92,7 +92,7 @@ export const ThemeLivePreview = memo(function ThemeLivePreview({
   );
   const showMacBar = designerVariables?.showMacBar ?? false;
   const parser = useMemo(
-    () => createMarkdownParser({ showMacBar }),
+    () => createMarkdownParser({ showMacBar, mathRenderer: "katex" }),
     [showMacBar],
   );
   const uiTheme = useUITheme((state) => state.theme);

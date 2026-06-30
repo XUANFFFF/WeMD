@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ElectronAPI } from "../../hooks/useFileSystemHelpers";
 import { useFileSystemEffects } from "../../hooks/useFileSystemEffects";
+import type { StorageAdapter } from "../../storage/StorageAdapter";
 
 const buildElectronMock = () => {
   let refreshCallback: (() => void) | undefined;
@@ -49,9 +50,55 @@ const buildElectronMock = () => {
   };
 };
 
+const buildParams = (
+  overrides: Partial<Parameters<typeof useFileSystemEffects>[0]> = {},
+) => ({
+  enabled: true,
+  electron: null,
+  adapter: null,
+  storageReady: false,
+  storageType: "indexeddb" as const,
+  currentFile: null,
+  markdown: "",
+  theme: "default",
+  themeName: "默认主题",
+  isRestoring: false,
+  isDirty: false,
+  lastSavedContent: "",
+  loadWorkspace: vi.fn(async () => {}),
+  refreshFiles: vi.fn(async () => {}),
+  openFile: vi.fn(async () => {}),
+  createFile: vi.fn(async () => {}),
+  saveFile: vi.fn(async () => {}),
+  selectWorkspace: vi.fn(async () => {}),
+  setCurrentFile: vi.fn(),
+  setMarkdown: vi.fn(),
+  setIsDirty: vi.fn(),
+  setLastSavedContent: vi.fn(),
+  setLoading: vi.fn(),
+  setWorkspacePath: vi.fn(),
+  ...overrides,
+});
+
+const buildAdapterMock = (): StorageAdapter =>
+  ({
+    type: "filesystem",
+    name: "File System Access",
+    ready: true,
+    init: vi.fn(async () => ({ ready: true })),
+    listFiles: vi.fn(async () => []),
+    readFile: vi.fn(async () => ""),
+    writeFile: vi.fn(async () => {}),
+    deleteFile: vi.fn(async () => {}),
+    renameFile: vi.fn(async () => {}),
+    exists: vi.fn(async () => false),
+    teardown: vi.fn(async () => {}),
+  }) as StorageAdapter;
+
 describe("useFileSystemEffects", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     if (
       typeof window !== "undefined" &&
       window.localStorage &&
@@ -68,32 +115,11 @@ describe("useFileSystemEffects", () => {
     const refreshFiles = vi.fn(async () => {});
     const createFile = vi.fn(async () => {});
 
-    const params = {
-      enabled: true,
+    const params = buildParams({
       electron: electron as ElectronAPI,
-      adapter: null,
-      storageReady: false,
-      storageType: "indexeddb" as const,
-      currentFile: null,
-      markdown: "",
-      theme: "default",
-      themeName: "默认主题",
-      isRestoring: false,
-      isDirty: false,
-      lastSavedContent: "",
-      loadWorkspace: vi.fn(async () => {}),
       refreshFiles,
-      openFile: vi.fn(async () => {}),
       createFile,
-      saveFile: vi.fn(async () => {}),
-      selectWorkspace: vi.fn(async () => {}),
-      setCurrentFile: vi.fn(),
-      setMarkdown: vi.fn(),
-      setIsDirty: vi.fn(),
-      setLastSavedContent: vi.fn(),
-      setLoading: vi.fn(),
-      setWorkspacePath: vi.fn(),
-    };
+    });
 
     const mounted = renderHook(() => useFileSystemEffects(params));
 
@@ -119,5 +145,162 @@ describe("useFileSystemEffects", () => {
     expect(fs.removeRefreshListener).toHaveBeenCalledTimes(1);
     expect(fs.removeRefreshListener).toHaveBeenCalledWith("refresh-handler");
     expect(fs.removeAllListeners).toHaveBeenCalledTimes(1);
+  });
+
+  it("浏览器文件夹模式下窗口聚焦会防抖刷新文件列表", async () => {
+    vi.useFakeTimers();
+    const refreshFiles = vi.fn(async () => {});
+    renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          adapter: buildAdapterMock(),
+          storageReady: true,
+          storageType: "filesystem",
+          refreshFiles,
+        }),
+      ),
+    );
+    refreshFiles.mockClear();
+
+    window.dispatchEvent(new Event("focus"));
+    window.dispatchEvent(new Event("focus"));
+
+    expect(refreshFiles).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it("浏览器文件夹模式下页面恢复可见会刷新文件列表", async () => {
+    vi.useFakeTimers();
+    const refreshFiles = vi.fn(async () => {});
+    renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          adapter: buildAdapterMock(),
+          storageReady: true,
+          storageType: "filesystem",
+          refreshFiles,
+        }),
+      ),
+    );
+    refreshFiles.mockClear();
+
+    Object.defineProperty(document, "visibilityState", {
+      value: "visible",
+      configurable: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it("IndexedDB 模式下不会注册窗口聚焦刷新", async () => {
+    vi.useFakeTimers();
+    const refreshFiles = vi.fn(async () => {});
+    renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          storageReady: true,
+          storageType: "indexeddb",
+          refreshFiles,
+        }),
+      ),
+    );
+
+    window.dispatchEvent(new Event("focus"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).not.toHaveBeenCalled();
+  });
+
+  it("Electron 模式下不会注册浏览器聚焦刷新", async () => {
+    vi.useFakeTimers();
+    const { electron } = buildElectronMock();
+    const refreshFiles = vi.fn(async () => {});
+    renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          electron: electron as ElectronAPI,
+          adapter: buildAdapterMock(),
+          storageReady: true,
+          storageType: "filesystem",
+          refreshFiles,
+        }),
+      ),
+    );
+
+    window.dispatchEvent(new Event("focus"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).not.toHaveBeenCalled();
+  });
+
+  it("禁用副作用时不会注册浏览器聚焦刷新", async () => {
+    vi.useFakeTimers();
+    const refreshFiles = vi.fn(async () => {});
+    renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          enabled: false,
+          adapter: buildAdapterMock(),
+          storageReady: true,
+          storageType: "filesystem",
+          refreshFiles,
+        }),
+      ),
+    );
+
+    window.dispatchEvent(new Event("focus"));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).not.toHaveBeenCalled();
+  });
+
+  it("卸载后会移除浏览器聚焦刷新监听并取消待执行刷新", async () => {
+    vi.useFakeTimers();
+    const refreshFiles = vi.fn(async () => {});
+    const removeWindowListener = vi.spyOn(window, "removeEventListener");
+    const removeDocumentListener = vi.spyOn(document, "removeEventListener");
+    const mounted = renderHook(() =>
+      useFileSystemEffects(
+        buildParams({
+          adapter: buildAdapterMock(),
+          storageReady: true,
+          storageType: "filesystem",
+          refreshFiles,
+        }),
+      ),
+    );
+    refreshFiles.mockClear();
+
+    window.dispatchEvent(new Event("focus"));
+    mounted.unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(refreshFiles).not.toHaveBeenCalled();
+    expect(removeWindowListener).toHaveBeenCalledWith(
+      "focus",
+      expect.any(Function),
+    );
+    expect(removeDocumentListener).toHaveBeenCalledWith(
+      "visibilitychange",
+      expect.any(Function),
+    );
   });
 });

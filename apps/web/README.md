@@ -1,73 +1,38 @@
-# React + TypeScript + Vite
+# WeMD Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+`apps/web` 是 WeMD 的 React + Vite 前端应用，承载 Markdown 编辑、预览、复制到公众号、主题管理、图床设置、历史记录和文件系统模式等核心体验。
 
-Currently, two official plugins are available:
+## 目录结构
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+apps/web/src/
+├── components/       # React 组件
+├── store/            # Zustand 状态
+├── storage/          # IndexedDB 与文件系统存储适配
+├── hooks/            # 可复用 Hook
+├── services/         # 复制、上传、渲染兼容等业务服务
+├── utils/            # 通用工具
+├── lib/              # 平台适配
+├── config/           # 静态配置
+├── styles/           # 全局样式
+├── bootstrap/        # 启动初始化逻辑
+├── types/            # 全局类型
+└── __tests__/        # 单元测试与集成测试
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 常用命令
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+推荐从仓库根目录运行：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm dev:web
+pnpm --filter @wemd/web lint
+pnpm --filter @wemd/web test
+pnpm --filter @wemd/web build
 ```
+
+## 开发注意
+
+- 复制到公众号是高风险链路，涉及 `services/wechatCopyService.ts`、`wechatCopyNormalizer.ts`、`wechatMermaidRenderer.ts` 和公式兼容逻辑，改动时需要补充测试。
+- 文件系统副作用只应在 `App.tsx` 单点启用，避免多个 hook 实例重复监听或自动保存。
+- UI 改动应复用现有组件、样式变量和交互模式，不要把服务逻辑写进组件。

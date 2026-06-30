@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { normalizeMarkdownFileName } from "../../utils/fileName";
+import {
+  appendMarkdownFileNameCounter,
+  normalizeMarkdownFileName,
+} from "../../utils/fileName";
 
 describe("normalizeMarkdownFileName", () => {
   it("会将路径分隔符替换为下划线", () => {
@@ -16,9 +19,17 @@ describe("normalizeMarkdownFileName", () => {
     expect(normalizeMarkdownFileName("   ")).toBe("未命名文章.md");
   });
 
+  it("已带 md 后缀时不会重复追加", () => {
+    expect(normalizeMarkdownFileName("新文章.md")).toBe("新文章.md");
+  });
+
   it("会按 maxLength 截断", () => {
     expect(normalizeMarkdownFileName("abcdef", { maxLength: 4 })).toBe(
       "abcd.md",
     );
+  });
+
+  it("会为 Markdown 文件名追加编号", () => {
+    expect(appendMarkdownFileNameCounter("新文章.md", 2)).toBe("新文章 (2).md");
   });
 });

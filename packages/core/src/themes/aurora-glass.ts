@@ -425,11 +425,11 @@ export const auroraGlassTheme = `/* 极光玻璃风格 */
 }
 
 /* 公式 */
-#wemd .block-equation svg {
+#wemd .block-equation > svg {
   max-width: 100% !important;
 }
 
-#wemd .inline-equation svg {
+#wemd .inline-equation > svg {
   max-width: 100%;
   vertical-align: middle;
 }

@@ -368,7 +368,7 @@ export const basicTheme = `/* 默认样式，最佳实践 */
   -webkit-overflow-scrolling: touch;
 }
 
-#wemd .block-equation svg {
+#wemd .block-equation > svg {
   max-width: 300% !important;
   -webkit-overflow-scrolling: touch;
 }
@@ -376,7 +376,7 @@ export const basicTheme = `/* 默认样式，最佳实践 */
 #wemd .inline-equation {
 }
 
-#wemd .inline-equation svg {
+#wemd .inline-equation > svg {
 }
 
 #wemd .imageflow-layer1 {

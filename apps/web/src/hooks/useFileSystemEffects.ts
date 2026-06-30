@@ -90,6 +90,8 @@ export function useFileSystemEffects({
   const createFileRef = useRef(createFile);
   const saveFileRef = useRef(saveFile);
   const selectWorkspaceRef = useRef(selectWorkspace);
+  const refreshFilesRef = useRef(refreshFiles);
+  const focusRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     createFileRef.current = createFile;
@@ -102,6 +104,10 @@ export function useFileSystemEffects({
   useEffect(() => {
     selectWorkspaceRef.current = selectWorkspace;
   }, [selectWorkspace]);
+
+  useEffect(() => {
+    refreshFilesRef.current = refreshFiles;
+  }, [refreshFiles]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -184,6 +190,38 @@ export function useFileSystemEffects({
       electron.fs.removeAllListeners();
     };
   }, [enabled, electron]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (electron) return;
+    if (!adapter || !storageReady || storageType !== "filesystem") return;
+
+    const scheduleRefresh = () => {
+      if (focusRefreshTimer.current) clearTimeout(focusRefreshTimer.current);
+      focusRefreshTimer.current = setTimeout(() => {
+        focusRefreshTimer.current = null;
+        void refreshFilesRef.current();
+      }, 500);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh();
+      }
+    };
+
+    window.addEventListener("focus", scheduleRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", scheduleRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (focusRefreshTimer.current) {
+        clearTimeout(focusRefreshTimer.current);
+        focusRefreshTimer.current = null;
+      }
+    };
+  }, [enabled, electron, adapter, storageReady, storageType]);
 
   useEffect(() => {
     if (!enabled) return;

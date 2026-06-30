@@ -51,6 +51,7 @@ describe("copyAsHtml", () => {
     await copyAsHtml("# Hello");
 
     expect(mocked.createMarkdownParserMock).toHaveBeenCalledWith({
+      mathRenderer: "katex",
       showMacBar: false,
     });
     expect(mocked.parserRender).toHaveBeenCalledWith("# Hello");

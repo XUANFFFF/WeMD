@@ -1,6 +1,6 @@
 {
   "name": "wemd-electron",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "description": "WeMD - 更优雅的 Markdown 公众号排版工具",
   "main": "dist/main.js",
   "homepage": "https://wemd.app",
@@ -10,7 +10,7 @@
     "test": "rimraf dist && tsc && node --test dist/**/*.test.js",
     "dev": "rimraf dist && tsc && electron .",
     "start": "electron .",
-    "build:mac": "npm run build && electron-builder --mac -c electron-builder.json",
+    "build:mac": "npm run build && electron-builder --mac --arm64 -c electron-builder.json",
     "build:win": "npm run build && electron-builder --win -c electron-builder.json",
     "build:linux": "npm run build && electron-builder --linux -c electron-builder.json"
   },

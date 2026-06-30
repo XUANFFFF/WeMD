@@ -319,11 +319,11 @@ export const academicPaperTheme = `/* 学术论文风格 */
 }
 
 /* 公式 */
-#wemd .block-equation svg {
+#wemd .block-equation > svg {
     max-width: 100% !important;
 }
 
-#wemd .inline-equation svg {
+#wemd .inline-equation > svg {
     max-width: 100%;
     vertical-align: middle;
 }

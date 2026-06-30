@@ -488,14 +488,14 @@ export const cyberpunkNeonTheme = `/* 赛博朋克风格 */
 }
 
 /* 公式 - 保持默认颜色，兼容微信亮色/深色模式 */
-#wemd .block-equation svg,
-#wemd .katex-block svg,
+#wemd .block-equation > svg,
+#wemd .katex-block > svg,
 #wemd mjx-container[display="true"] svg {
     max-width: 100% !important;
 }
 
-#wemd .inline-equation svg,
-#wemd .katex-inline svg,
+#wemd .inline-equation > svg,
+#wemd .katex-inline > svg,
 #wemd mjx-container:not([display="true"]) svg {
     max-width: 100%;
     vertical-align: middle;

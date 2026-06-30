@@ -79,7 +79,10 @@ const copyViaExecCommand = (text: string): boolean => {
 };
 
 export async function copyAsHtml(markdown: string): Promise<void> {
-  const parser = createMarkdownParser({ showMacBar: false });
+  const parser = createMarkdownParser({
+    showMacBar: false,
+    mathRenderer: "katex",
+  });
   const rawHtml = parser.render(markdown);
   const html = sanitizeForExternalHtml(rawHtml);
 

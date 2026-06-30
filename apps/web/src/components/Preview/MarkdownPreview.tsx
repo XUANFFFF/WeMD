@@ -48,7 +48,7 @@ export function MarkdownPreview() {
 
   // 缓存 parser 实例，避免每次渲染都创建新实例
   const parser = useMemo(
-    () => createMarkdownParser({ showMacBar }),
+    () => createMarkdownParser({ showMacBar, mathRenderer: "katex" }),
     [showMacBar],
   );
 

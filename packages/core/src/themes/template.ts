@@ -495,7 +495,7 @@ export const templateTheme = `/*
     overflow-x: auto;
 }
 
-#wemd .block-equation svg {
+#wemd .block-equation > svg {
     max-width: 100% !important;
     /* 最大宽度：不超出容器 */
 }
@@ -505,7 +505,7 @@ export const templateTheme = `/*
     display: inline;
 }
 
-#wemd .inline-equation svg {
+#wemd .inline-equation > svg {
     max-width: 100%;
     vertical-align: middle;
     /* 垂直居中 */

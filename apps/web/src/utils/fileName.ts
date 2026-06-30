@@ -23,3 +23,12 @@ export function normalizeMarkdownFileName(
   const finalName = normalized || fallback;
   return `${finalName.slice(0, maxLength)}.md`;
 }
+
+export function appendMarkdownFileNameCounter(
+  fileName: string,
+  counter: number,
+): string {
+  const normalized = normalizeMarkdownFileName(fileName);
+  const base = normalized.replace(/\.md$/i, "");
+  return `${base} (${counter}).md`;
+}
